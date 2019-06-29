@@ -54,3 +54,8 @@ def gChain(*gens):
             yield  # this allows to use our generator inside `for .. in ..` without skipping on `send`
             if isGen:
                g.send(extCmd)
+
+def grouper(n, obj, fill=None):
+   # group items by n (ABCDEFG --> ABC DEF Gxx if n=3)
+   args=[iter(obj)]*n
+   return izip_longest(fill=fill, *args)

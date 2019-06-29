@@ -48,7 +48,7 @@ class CaseInsensitiveDict(dict):
       super(CaseInsensitiveDict, self).update(self.__class__(**F))
    def _convert_keys(self):
       for k in list(self.keys()):
-         v = super(CaseInsensitiveDict, self).pop(k)
+         v=super(CaseInsensitiveDict, self).pop(k)
          self.__setitem__(k, v)
 
 class MagicDict(dict):
@@ -107,3 +107,27 @@ def dict2magic(o, recursive=False):
    return o
 dictToMagic=dict2magic
 
+class Circularlist(object):
+   # https://stackoverflow.com/a/40784706
+
+   def __init__(self, size):
+      self.index=0
+      self.size=size
+      self._data=[]
+
+   def append(self, value):
+      if len(self._data)==self.size:
+         self._data[self.index]=value
+      else:
+         self._data.append(value)
+      self.index=(self.index+1)%self.size
+
+   def __getitem__(self, key):
+      """Get element by index, relative to the current index"""
+      if len(self._data)==self.size:
+         return(self._data[(key+self.index) % self.size])
+      else:
+         return(self._data[key])
+
+   def __repr__(self):
+      return self._data.__repr__()+' ('+str(len(self._data))+' items)'

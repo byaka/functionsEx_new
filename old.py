@@ -33,9 +33,6 @@ from email import encoders
 # with typehack we can add methods to build-in classes, like in JS!
 #? see code.google.com/p/typehack/source/browse/doc/readme.txt
 
-timetime=time.time
-datetime_now=datetime.datetime.now
-date_now=datetime.date.today
 
 mysqlEscaper=None  # библиотека pymysql блокирует патчинг через gevent, лучше импортирвоать ее на месте
 
@@ -89,29 +86,6 @@ def deprecated(f):
       return f(*args, **kwargs)
    return tmp
 #===================================
-# https://stackoverflow.com/a/40784706
-# class Circularlist(object):
-#    def __init__(self, size):
-#       self.index = 0
-#       self.size = size
-#       self._data = []
-
-#    def append(self, value):
-#       if len(self._data) == self.size:
-#          self._data[self.index] = value
-#       else:
-#          self._data.append(value)
-#       self.index = (self.index + 1) % self.size
-
-#    def __getitem__(self, key):
-#       """Get element by index, relative to the current index"""
-#       if len(self._data) == self.size:
-#          return(self._data[(key + self.index) % self.size])
-#       else:
-#          return(self._data[key])
-
-#    def __repr__(self):
-#       return self._data.__repr__() + ' (' + str(len(self._data))+' items)'
 
 #===================================
 def getHtml(url, tryEncode=True, followRedirect=True):
@@ -353,7 +327,6 @@ def isSet(var):
 
 getObjectById=findObjectById
 
-#===================================
 def json2generator(data, arrayKey=None):
    """
    Функция конвертирует переданный json в генератор. Это позволяет избежать утечки памяти на огромных обьемах данных. Может выдать генератор только для массива (неважно какой вложенности и сложности). arrayKey должен указывать на массив, может быть цепочкой (key1.key2)
@@ -453,36 +426,10 @@ def str2dict(text, sep1='=', sep2=' '):
       if s1: tArr2[s1]=s2
    return tArr2
 
-def size2human(num, suffix='B'):
-   for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
-      if abs(num)<1024.0:
-         return "%3.1f%s%s"%(num, unit, suffix)
-      num/=1024.0
-   return "%.1f%s%s"%(num, 'Yi', suffix)
-
 def getms(inMS=False):
    #return time and date in miliseconds(UNIXTIME) or seconds
    if inMS: return round(time.time()*1000.0, 0)
    else: return int(time.time())
-
-def time2human(val, inMS=True):
-   if not inMS: val=val*1000.0
-   d=24*60*60*1000.0
-   h=60*60*1000.0
-   m=60*1000.0
-   s=1000.0
-   ms=1
-   mks=0.001
-   ns=0.000001
-   if not val: val='0'
-   elif val>=d: val='%.2fd'%(val/d)
-   elif val>=h: val='%.2fh'%(val/h)
-   elif val>=m: val='%.1fm'%(val/m)
-   elif val>=s: val='%.1fs'%(val/s)
-   elif val>=ms: val='%.0fms'%(val/ms)
-   elif val>=mks: val='%.0fmks'%(val/mks)
-   else: val='%.0fns'%(val/ns)
-   return val
 
 def dateComp(date, datewith=None, f='%d/%m/%Y %H:%M:%S'):
    #compare two dates in specific format
@@ -516,12 +463,6 @@ def dateIncress(wait, f='%d.%m.%Y'):
    s=datetime.datetime.now()+datetime.timedelta(seconds=s)
    return s.strftime(f)
 
-def timeNum(text, f='%d/%m/%Y %H:%M:%S'):
-   #convert string to time
-   t0=datetime.datetime.strptime(text, f)
-   t1=time.mktime(t0.timetuple())
-   return round(t1)
-#===================================
 # import code, readline, atexit, os
 
 # class HistoryConsole(code.InteractiveConsole):
@@ -627,201 +568,10 @@ console=magicDict({
    'height':lambda: consoleSize()[1],
 })
 
-#===================================
 @deprecated
 def cmd(command, path=None, enc="utf-8"):
    return runExternal(command, path=path, enc=enc, data=None)
 
-#===================================
-def isURL(url):
-   if not url or not isStr(url): return False
-   try:
-      r=urlparse(urljoin(url, '/'))
-      return r.scheme and r.netloc and r.path and ('.' in r.netloc)
-   except Exception:
-      return False
-
-def cropURL(t):
-   if(t[:7]=='http://'): t=t[7:]
-   if(t[:8]=='https://'): t=t[8:]
-   if(t[:4]=='www.'): t=t[4:]
-   return t
-
-def rebuildURL(url, cb):
-   #чиним адрес, чтобы парсить адреса без scheme
-   for s in ['//', 'http://', 'https://', 'ftp://']:
-      if url.startswith(s): break
-   else: url='//'+url if(url.startswith('/') or '.' in strGet(url, '', '/')) else '///'+url
-   #парсим
-   scheme, netloc, path, query, fragment=urlsplit(url)
-   if 'netloc' in cb:
-      netloc=cb['netloc'](netloc) if isFunction(cb['netloc']) else cb['netloc']
-   if 'path' in cb:
-      path=cb['path'](path) if isFunction(cb['path']) else cb['path']
-   if 'scheme' in cb:
-      scheme=cb['scheme'](scheme) if isFunction(cb['scheme']) else cb['scheme']
-   if 'fragment' in cb:
-      if isFunction(cb['fragment']):
-         fragment=parse_qs(fragment)
-         tArr1={}
-         for k, v in fragment.iteritems():
-            if isFunction(cb['fragment']): s=cb['fragment'](k, v)
-            elif isDict(cb['fragment']): s=oGet(cb['fragment'], k, v)
-            else: s=cb['fragment']
-            if s is not False: tArr1[k]=s
-         try: fragment=urlencode(tArr1, doseq=True)
-         except: fragment=''
-      else: fragment=cb['fragment']
-   if 'query' in cb:
-      if isFunction(cb['query']) or isDict(cb['query']):
-         query=parse_qs(query)
-         tArr1={}
-         for k, v in query.iteritems():
-            if isFunction(cb['query']): s=cb['query'](k, v)
-            elif isDict(cb['query']): s=oGet(cb['query'], k, v)
-            else: s=cb['query']
-            if s is not False: tArr1[k]=s
-         try: query=urlencode(tArr1, doseq=True)
-         except: query=''
-      else: query=cb['query']
-   return urlunsplit((scheme, netloc, path, query, fragment))
-#===================================
-def pathList(path, fullPath=True, alsoFiles=True, alsoDirs=False, recursive=False, filter=None, isBlacklist=True, cb=None, _result=None, _prefix=None):
-   #list sub-files and sub-dirs for specific path
-   #! нужна версия, отдающая генератор на основе os.walk
-   res=[] if _result is None else _result
-   for f in os.listdir(path):
-      fp=os.path.join(path, f)
-      if filter:
-         if isFunction(filter):
-            if filter(fp, f) is False: continue
-         elif isBlacklist and f in filter: continue
-         elif not isBlacklist and f not in filter: continue
-      #
-      if isFunction(cb): fp, f=cb(fp, f)
-      if not os.path.isfile(fp):
-         if recursive:
-            pathList(fp, fullPath=fullPath, alsoFiles=alsoFiles, alsoDirs=alsoDirs, recursive=True, filter=filter, cb=cb, _result=res, _prefix='' if fullPath else f+'/')
-         if not alsoDirs: continue
-      elif not alsoFiles: continue
-      s=fp if fullPath else f
-      if _prefix and isString(_prefix): s=_prefix+s
-      res.append(s)
-      # yield (fp if fullPath else f)
-   return res
-
-def folderClear(path, alsoFiles=True, alsoDirs=False, silent=True, filter=None, isBlacklist=True):
-   for f in os.listdir(path):
-      fp=os.path.join(path, f)
-      try:
-         if alsoFiles and os.path.isfile(fp):
-            if isFunction(filter):
-               if filter(fp, f, True) is False: continue
-            elif isBlacklist and f in filter: continue
-            elif not isBlacklist and f not in filter: continue
-            os.unlink(fp)
-         if alsoDirs and os.path.isdir(fp):
-            if isFunction(filter):
-               if filter(fp, f, False) is False: continue
-            elif isBlacklist and f in filter: continue
-            elif not isBlacklist and f not in filter: continue
-            #! это удалит все внутренности папки, а нам нужно пройтись фильтром
-            if os.path.islink(fp):
-               os.unlink(fp)
-            else:
-               shutil.rmtree(fp)
-      except Exception:
-         if not silent: raise
-         print getErrorInfo(fallback=True)
-
-def zipGet(fName, filterByName=None, forceTry=False, password=None, silent=True):
-   z=zipfile.ZipFile(fName, mode='r')
-   isOk=True
-   isSingle=False
-   if filterByName is None:
-      filterByName=z.namelist()
-   elif isString(filterByName):
-      filterByName=(filterByName,)
-      isSingle=True
-   res={}
-   for n in filterByName:
-      try: res[n]=z.read(n, password)
-      except Exception, e:
-         if not silent:
-            try: z.close()
-            except Exception: pass
-            raise e
-         print '! Cant read file "%s" from zip "%s": %s'%(n, fName, e)
-         isOk=False
-         if not forceTry: break
-   try: z.close()
-   except Exception, e:
-      if not silent: raise
-      print '! Cant close zip "%s": %s'%(fName, e)
-      isOk=False
-   if forceTry: return res.values()[0] if isSingle else res
-   else:
-      return (res.values()[0] if isSingle else res) if isOk else False
-
-def isZipCompressionSupported(returnConst=False):
-   # check, if compression supported by OS
-   try:
-      import zlib  # noqa
-      return zipfile.ZIP_DEFLATED if returnConst else True
-   except Exception:
-      return zipfile.ZIP_STORED if returnConst else False
-
-def zipWrite(fName, data, mode='w', forceCompression=True, silent=True):
-   if not isDict(data):
-      raise ValueError('data must be a dict with <name>:<content>')
-   isOk=True
-   if forceCompression and not isZipCompressionSupported():
-      raise RuntimeError('Compression not supported by OS')
-   z=zipfile.ZipFile(fName, mode=mode, compression=isZipCompressionSupported(returnConst=True))
-   for n, d in data.iteritems():
-      isRaw=False
-      if isinstance(d, tuple) and len(d)==2 and d[0]==open: isRaw, d=True, d[1]
-      elif not isString(d): d=repr(d)
-      try:
-         z.write(d, n) if isRaw else z.writestr(n, d)
-      except Exception, e:
-         if not silent:
-            try: z.close()
-            except Exception: pass
-            raise e
-         print '! Cant write file "%s" to zip "%s": %s'%(n, fName, e)
-         isOk=False
-         break
-   try: z.close()
-   except Exception, e:
-      if not silent: raise
-      print '! Cant close zip "%s": %s'%(fName, e)
-      isOk=False
-   return isOk
-
-def fileGet(fName, mode='r', silent=True, buffer=-1):
-   fName=fName.encode('cp1251')
-   if not os.path.isfile(fName): return None
-   try:
-      with open(fName, mode, buffer) as f: s=f.read()
-   except Exception, e:
-      if not silent: raise
-      print '! Cant get file "%s": %s'%(fName, e)
-      s=None
-   return s
-
-def fileWrite(fName, text, mode='w', silent=False, buffer=-1):
-   try:
-      with open(fName, mode, buffer) as f: f.write(text)
-   except Exception, e:
-      if not silent: raise
-      print '! Cant write file "%s"(%s): %s'%(fName, mode, e)
-
-def fileAppend(fName, text, mode='a', silent=False, buffer=-1):
-   return fileWrite(fName, text, mode=mode, silent=silent, buffer=buffer)
-
-
-#===================================
 def clearTypography(data):
    tMap={
       u' ':' ',
@@ -949,9 +699,6 @@ def printTable(table):
       print s
       if not i or i==len(table)-1: print '-'*len(s)
 
-#===================================
-
-#===================================
 def arrFind(arr, v, default=-1):
    """аналог str.find() для массивов"""
    if isGenerator(arr): arr=list(arr)
@@ -1261,10 +1008,6 @@ def arrSplit(arr, pair=2, returnList=False):
    if returnList: arr=list(arr)
    return arr
 
-def grouper(n, obj, fill=None):
-   # group items by n (ABCDEFG --> ABC DEF Gxx if n=3)
-   args=[iter(obj)]*n
-   return izip_longest(fill=fill,*args)
 
 def dictMerge(o, withO, changed=None, changedType='key', modify=True, recursive=True):
    """ Another dict.update that supports recursive updating and store diff. """
@@ -1396,7 +1139,7 @@ def inOf(o, v):
       try:
          return (v in o)
       except: return False
-#===================================
+
 def sendmail(**p):
    p=magicDict(p)
    _login=p.get('login', p.get('user', ''))
@@ -1473,7 +1216,7 @@ def yaSend(login, password, to, text, subject='', attach=None):
 
 global gmail
 gmail=magicDict({'send':gmailSend})
-#===================================
+
 # usage example
 # createSSLTunnel(6117, 6017, sslCert='/home/sslCert/screendesk_io.chained.crt', sslKey='/home/sslCert/screendesk_io.key') or sys.exit(0)
 
@@ -1522,4 +1265,3 @@ def createSSLTunnel(port_https, port_http, sslCert='', sslKey='', stunnel_config
    #       stunnelLog=fileGet(logPath)
    # thread_checkSSLTunnel=threading.Thread(target=checkSSLTunnel).start()
    return process
-#===================================
