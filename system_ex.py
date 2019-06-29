@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import shutil, tempfile, platform, os, ctypes, sys, errno
+import shutil, tempfile, platform, os, ctypes, sys, errno, subprocess
 
 from .types_ex import CaseInsensitiveDict
 
@@ -71,3 +71,19 @@ def parseCLI(argv=None, actionCaseSensitive=True, argCaseSensitive=False, argDef
          args[k]=v
       else: raise err
    return action, args
+
+def runExternal(command, path=None, enc="utf-8", data=None):
+   process=subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=path)
+   if isString(data):
+      data=data.encode(enc)+'\n'
+   out, err=process.communicate(input=data)
+   if err:
+      try: err=err.decode(enc)
+      except UnicodeDecodeError: pass
+   r=process.poll()
+   if r:
+      raise RuntimeError("Process %s has returned error-code %s: %s"%(' '.join(command), r, err))
+   if out:
+      try: out=out.decode(enc)
+      except UnicodeDecodeError: pass
+   return out

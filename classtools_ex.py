@@ -65,3 +65,20 @@ class Singleton(type):
       # else:
       #    cls._instances[cls].__init__(*args, **kwargs)
       return cls._instances[cls]
+
+def iterSubClasses(cls):
+   if not isinstance(cls, type):
+      raise TypeError('iterSubClasses() works only for new-style Classes')
+   seen=set()
+   tArr1=[cls]
+   while tArr1:
+      now=tArr1.pop()
+      try:
+         tArr2=now.__subclasses__()
+      except TypeError:  #fails only when cls is type
+         tArr2=now.__subclasses__(now)
+      for o in tArr2:
+         if o not in seen:
+            tArr1.append(o)
+            seen.add(o)
+            yield o
