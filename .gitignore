@@ -102,3 +102,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+/pytools_ex.sublime-project
+/pytools_ex.sublime-workspace
+/untitled.sublime-workspace
